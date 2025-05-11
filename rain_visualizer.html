@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rain Accumulation Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Add Three.js for 3D visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.6;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+      .parameters {
+        flex: 1;
+        min-width: 300px;
+        padding: 20px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+      }
+      .visualization-container {
+        flex: 2;
+        min-width: 500px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .scene-container {
+        width: 100%;
+        height: 400px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        position: relative;
+      }
+      .chart-container {
+        width: 100%;
+        height: 300px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .slider-container {
+        margin-bottom: 15px;
+      }
+      .slider-container label {
+        display: inline-block;
+        width: 150px;
+      }
+      .slider-value {
+        display: inline-block;
+        width: 50px;
+        text-align: right;
+      }
+      fieldset {
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+      }
+      legend {
+        font-weight: bold;
+        padding: 0 5px;
+      }
+      button {
+        padding: 10px 15px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      .info-panel {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        pointer-events: none;
+      }
+      .visualization-section {
+        margin-bottom: 10px;
+        font-weight: bold;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Rain Accumulation Visualizer</h1>
+    <p>
+      Visualize how much water a person accumulates when walking/running through
+      rain at different speeds.
+    </p>
+
+    <div class="container">
+      <div class="parameters">
+        <fieldset>
+          <legend>Subject Dimensions (m)</legend>
+          <div class="slider-container">
+            <label for="Lx">Width (Lx):</label>
+            <input
+              type="range"
+              id="Lx"
+              min="0.1"
+              max="1"
+              step="0.05"
+              value="0.3"
+            />
+            <span class="slider-value" id="Lx-value">0.3</span>
+          </div>
+          <div class="slider-container">
+            <label for="Ly">Height (Ly):</label>
+            <input
+              type="range"
+              id="Ly"
+              min="0.5"
+              max="2.5"
+              step="0.1"
+              value="1.8"
+            />
+            <span class="slider-value" id="Ly-value">1.8</span>
+          </div>
+          <div class="slider-container">
+            <label for="Lz">Depth (Lz):</label>
+            <input
+              type="range"
+              id="Lz"
+              min="0.1"
+              max="1"
+              step="0.05"
+              value="0.5"
+            />
+            <span class="slider-value" id="Lz-value">0.5</span>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Distance to Travel (m)</legend>
+          <div class="slider-container">
+            <label for="ldx">X-distance (ldx):</label>
+            <input
+              type="range"
+              id="ldx"
+              min="-100"
+              max="100"
+              step="5"
+              value="100"
+            />
+            <span class="slider-value" id="ldx-value">100</span>
+          </div>
+          <div class="slider-container">
+            <label for="ldy">Y-distance (ldy):</label>
+            <input
+              type="range"
+              id="ldy"
+              min="-100"
+              max="100"
+              step="5"
+              value="10"
+            />
+            <span class="slider-value" id="ldy-value">10</span>
+          </div>
+          <div class="slider-container">
+            <label for="ldz">Z-distance (ldz):</label>
+            <input
+              type="range"
+              id="ldz"
+              min="-100"
+              max="100"
+              step="5"
+              value="-1"
+            />
+            <span class="slider-value" id="ldz-value">-1</span>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Rain Velocity (m/s)</legend>
+          <div class="slider-container">
+            <label for="Vrx">X-component (Vrx):</label>
+            <input
+              type="range"
+              id="Vrx"
+              min="-5"
+              max="5"
+              step="0.5"
+              value="-1"
+            />
+            <span class="slider-value" id="Vrx-value">-1</span>
+          </div>
+          <div class="slider-container">
+            <label for="Vry">Y-component (Vry):</label>
+            <input
+              type="range"
+              id="Vry"
+              min="-5"
+              max="0"
+              step="0.5"
+              value="-1.5"
+            />
+            <span class="slider-value" id="Vry-value">-1.5</span>
+          </div>
+          <div class="slider-container">
+            <label for="Vrz">Z-component (Vrz):</label>
+            <input
+              type="range"
+              id="Vrz"
+              min="-5"
+              max="5"
+              step="0.5"
+              value="-1"
+            />
+            <span class="slider-value" id="Vrz-value">-1</span>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Subject Velocity Range (m/s)</legend>
+          <div class="slider-container">
+            <label for="Vs-min">Min Speed:</label>
+            <input
+              type="range"
+              id="Vs-min"
+              min="0.1"
+              max="5"
+              step="0.1"
+              value="0.1"
+            />
+            <span class="slider-value" id="Vs-min-value">0.1</span>
+          </div>
+          <div class="slider-container">
+            <label for="Vs-max">Max Speed:</label>
+            <input
+              type="range"
+              id="Vs-max"
+              min="5"
+              max="15"
+              step="0.5"
+              value="10"
+            />
+            <span class="slider-value" id="Vs-max-value">10</span>
+          </div>
+          <div class="slider-container">
+            <label for="points-count">Data Points:</label>
+            <input
+              type="range"
+              id="points-count"
+              min="10"
+              max="200"
+              step="10"
+              value="100"
+            />
+            <span class="slider-value" id="points-count-value">100</span>
+          </div>
+        </fieldset>
+
+        <button id="calculate-btn">Calculate & Update Visualization</button>
+      </div>
+
+      <div class="visualization-container">
+        <!-- 3D visualization (now always visible) -->
+        <div>
+          <div class="visualization-section">3D Visualization</div>
+          <div class="scene-container">
+            <div class="info-panel">
+              <p>Use mouse to rotate view, scroll to zoom.</p>
+              <p id="rain-info">Rain direction: (-1.0, -1.5, -1.0) m/s</p>
+              <p id="destination-info">Destination: (100, 10, -1) m</p>
+            </div>
+            <canvas id="3d-scene"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart view (now always visible) -->
+        <div>
+          <div class="visualization-section">Water Accumulation Chart</div>
+          <div class="chart-container">
+            <canvas id="accumulation-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Simplified chart handling - replace the createOrUpdateChart function and related code
+
+      // Initialize the chart with empty data
+      function initializeChart() {
+        const ctx = document
+          .getElementById("accumulation-chart")
+          .getContext("2d");
+
+        // Create a simple chart with initial empty data
+        accumulationChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [0, 1, 2, 3, 4, 5], // Default placeholder labels
+            datasets: [
+              {
+                label: "Water Accumulation (m³)",
+                data: [0, 0, 0, 0, 0, 0], // Default placeholder data
+                borderColor: "rgb(75, 192, 192)",
+                tension: 0.1,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Subject Velocity (m/s)",
+                },
+                ticks: {
+                  callback: function (value) {
+                    return Number(value).toFixed(3);
+                  },
+                },
+              },
+              y: {
+                type: "logarithmic",
+                title: {
+                  display: true,
+                  text: "Total Water Volume (m³)",
+                },
+              },
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: "Total Water Accumulated vs Subject Speed",
+              },
+            },
+          },
+        });
+
+        return accumulationChart;
+      }
+
+      // Function to update the chart
+      function updateChart() {
+        // Get parameter values from sliders
+        const Lx = parseFloat(document.getElementById("Lx").value);
+        const Ly = parseFloat(document.getElementById("Ly").value);
+        const Lz = parseFloat(document.getElementById("Lz").value);
+
+        const ldx = parseFloat(document.getElementById("ldx").value);
+        const ldy = parseFloat(document.getElementById("ldy").value);
+        const ldz = parseFloat(document.getElementById("ldz").value);
+
+        const Vrx = parseFloat(document.getElementById("Vrx").value);
+        const Vry = parseFloat(document.getElementById("Vry").value);
+        const Vrz = parseFloat(document.getElementById("Vrz").value);
+
+        const VsMin = parseFloat(document.getElementById("Vs-min").value);
+        const VsMax = parseFloat(document.getElementById("Vs-max").value);
+        const pointsCount = parseInt(
+          document.getElementById("points-count").value
+        );
+
+        // Check for zero destination to avoid division by zero
+        const distance = Math.sqrt(ldx * ldx + ldy * ldy + ldz * ldz);
+        if (distance === 0) {
+          alert("Destination cannot be at the origin (0,0,0)");
+          return;
+        }
+
+        try {
+          // Generate velocity array
+          const Vs = Array.from(
+            { length: pointsCount },
+            (_, i) => VsMin + ((VsMax - VsMin) * i) / (pointsCount - 1)
+          );
+
+          // Calculate direction components
+          const Vsx = Vs.map((v) => (v * ldx) / distance);
+          const Vsy = Vs.map((v) => (v * ldy) / distance);
+          const Vsz = Vs.map((v) => (v * ldz) / distance);
+
+          // Debug velocity components
+          console.log("Distance:", distance);
+          console.log("Velocity components:", { Vsx, Vsy, Vsz });
+
+          // Calculate water accumulation using the fixed function
+          const waterAccumulation = calculateWaterAccumulation(
+            Lx,
+            Ly,
+            Lz,
+            Vrx,
+            Vry,
+            Vrz,
+            Vsx,
+            Vsy,
+            Vsz,
+            ldx,
+            ldy,
+            ldz,
+            Vs
+          );
+
+          // Debug output
+          console.log("Velocity values:", Vs);
+          console.log("Water accumulation values:", waterAccumulation);
+
+          // Check if we have valid data
+          if (
+            !waterAccumulation ||
+            waterAccumulation.some((v) => !isFinite(v))
+          ) {
+            console.error(
+              "Invalid water accumulation values:",
+              waterAccumulation
+            );
+            alert(
+              "Error: Some calculations resulted in invalid values. Please adjust parameters."
+            );
+            return;
+          }
+
+          // Initialize chart if it doesn't exist
+          if (!accumulationChart) {
+            accumulationChart = initializeChart();
+          }
+
+          // Update chart with new data - direct update approach
+          accumulationChart.data.labels = Vs;
+          accumulationChart.data.datasets[0].data = waterAccumulation;
+          accumulationChart.options.plugins.title.text = `Total Water Accumulated for Different Velocities to (${ldx}, ${ldy}, ${ldz})m`;
+
+          // Force update
+          accumulationChart.update();
+
+          // Update 3D visualization
+          if (scene) {
+            update3DVisualization();
+          }
+        } catch (error) {
+          console.error("Error updating chart:", error);
+          alert(
+            "An error occurred updating the chart. See console for details."
+          );
+        }
+      }
+
+      // Modify the event listener setup to ensure we update the chart
+      document
+        .getElementById("calculate-btn")
+        .addEventListener("click", function () {
+          console.log("Calculate button clicked");
+          updateChart();
+        });
+
+      // Initialize everything when the page loads
+      window.addEventListener("load", () => {
+        // Force chart container to have the right size
+        const chartContainer = document.querySelector(".chart-container");
+        if (chartContainer) {
+          chartContainer.style.height = "300px";
+        }
+
+        setTimeout(() => {
+          // Initialize chart with empty data first
+          accumulationChart = initializeChart();
+
+          // Then update with actual data
+          updateChart();
+
+          // Initialize 3D scene
+          init3DScene();
+        }, 200); // Slightly longer timeout for initialization
+      });
+
+      // --- 3D Visualization with Three.js ---
+      // Scene initialization variables
+      let scene, camera, renderer, controls;
+      let subjectMesh, destinationMarker, rainDirectionArrow;
+      let gridHelper, axesHelper;
+      let pathLine; // Add variable to track the path line
+
+      // Initialize the 3D scene
+      function init3DScene() {
+        const container = document.querySelector(".scene-container");
+        const canvas = document.getElementById("3d-scene");
+
+        // Create scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        // Create camera
+        camera = new THREE.PerspectiveCamera(
+          60,
+          container.clientWidth / container.clientHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(50, 50, 100);
+        camera.lookAt(0, 0, 0);
+
+        // Create renderer
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+
+        // Add orbit controls for user interaction
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+
+        // Add grid and axes helpers
+        gridHelper = new THREE.GridHelper(200, 20, 0x888888, 0xcccccc);
+        scene.add(gridHelper);
+
+        axesHelper = new THREE.AxesHelper(50);
+        scene.add(axesHelper);
+
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 50, 50);
+        scene.add(directionalLight);
+
+        // Create subject representation (at origin)
+        const Lx = parseFloat(document.getElementById("Lx").value);
+        const Ly = parseFloat(document.getElementById("Ly").value);
+        const Lz = parseFloat(document.getElementById("Lz").value);
+
+        const subjectGeometry = new THREE.BoxGeometry(Lx, Ly, Lz);
+        const subjectMaterial = new THREE.MeshLambertMaterial({
+          color: 0x2194ce,
+          transparent: true,
+          opacity: 0.8,
+        });
+
+        subjectMesh = new THREE.Mesh(subjectGeometry, subjectMaterial);
+        subjectMesh.position.set(0, Ly / 2, 0); // Position at ground level
+        scene.add(subjectMesh);
+
+        // Create destination marker
+        createDestinationMarker();
+
+        // Create rain direction arrow
+        createRainDirectionArrow();
+
+        // Animation loop
+        function animate() {
+          requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener("resize", updateThreeDimensions);
+      }
+
+      function updateThreeDimensions() {
+        if (!renderer) return;
+
+        const container = document.querySelector(".scene-container");
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      }
+
+      function createDestinationMarker() {
+        // Get destination coordinates
+        const ldx = parseFloat(document.getElementById("ldx").value);
+        const ldy = parseFloat(document.getElementById("ldy").value);
+        const ldz = parseFloat(document.getElementById("ldz").value);
+
+        // Create a sphere to mark the destination
+        const markerGeometry = new THREE.SphereGeometry(2, 16, 16);
+        const markerMaterial = new THREE.MeshLambertMaterial({
+          color: 0xff0000,
+        });
+
+        if (destinationMarker) {
+          scene.remove(destinationMarker);
+        }
+
+        destinationMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+        destinationMarker.position.set(ldx, ldy, ldz);
+        scene.add(destinationMarker);
+
+        // Remove previous path line if it exists
+        if (pathLine) {
+          scene.remove(pathLine);
+        }
+
+        // Add line from origin to destination
+        const pathMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+        const pathGeometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(ldx, ldy, ldz),
+        ]);
+
+        pathLine = new THREE.Line(pathGeometry, pathMaterial);
+        scene.add(pathLine);
+
+        // Update destination info
+        document.getElementById(
+          "destination-info"
+        ).textContent = `Destination: (${ldx}, ${ldy}, ${ldz}) m`;
+      }
+
+      function createRainDirectionArrow() {
+        // Get rain velocity components
+        const Vrx = parseFloat(document.getElementById("Vrx").value);
+        const Vry = parseFloat(document.getElementById("Vry").value);
+        const Vrz = parseFloat(document.getElementById("Vrz").value);
+
+        // Remove previous arrow if it exists
+        if (rainDirectionArrow) {
+          scene.remove(rainDirectionArrow);
+        }
+
+        // Calculate arrow length for visualization
+        const arrowLength = Math.sqrt(Vrx * Vrx + Vry * Vry + Vrz * Vrz) * 10;
+        const arrowDirection = new THREE.Vector3(Vrx, Vry, Vrz).normalize();
+
+        // Create arrow starting points (multiple arrows to show rain pattern)
+        const rainArrowGroup = new THREE.Group();
+
+        for (let x = -40; x <= 40; x += 20) {
+          for (let z = -40; z <= 40; z += 20) {
+            // Create arrow helper
+            const arrow = new THREE.ArrowHelper(
+              arrowDirection,
+              new THREE.Vector3(x, 40, z),
+              arrowLength,
+              0x0000ff,
+              3,
+              1.5
+            );
+            rainArrowGroup.add(arrow);
+          }
+        }
+
+        rainDirectionArrow = rainArrowGroup;
+        scene.add(rainDirectionArrow);
+
+        // Update rain info
+        document.getElementById(
+          "rain-info"
+        ).textContent = `Rain direction: (${Vrx.toFixed(1)}, ${Vry.toFixed(
+          1
+        )}, ${Vrz.toFixed(1)}) m/s`;
+      }
+
+      function update3DVisualization() {
+        if (!scene) return;
+
+        // Update subject dimensions
+        const Lx = parseFloat(document.getElementById("Lx").value);
+        const Ly = parseFloat(document.getElementById("Ly").value);
+        const Lz = parseFloat(document.getElementById("Lz").value);
+
+        // Update subject mesh geometry
+        scene.remove(subjectMesh);
+        const subjectGeometry = new THREE.BoxGeometry(Lx, Ly, Lz);
+        const subjectMaterial = new THREE.MeshLambertMaterial({
+          color: 0x2194ce,
+          transparent: true,
+          opacity: 0.8,
+        });
+
+        subjectMesh = new THREE.Mesh(subjectGeometry, subjectMaterial);
+        subjectMesh.position.set(0, Ly / 2, 0); // Position at ground level
+        scene.add(subjectMesh);
+
+        // Update destination marker
+        createDestinationMarker();
+
+        // Update rain direction arrow
+        createRainDirectionArrow();
+      }
+
+      // Update displayed slider values
+      document.querySelectorAll('input[type="range"]').forEach((slider) => {
+        const valueDisplay = document.getElementById(`${slider.id}-value`);
+        slider.addEventListener("input", () => {
+          valueDisplay.textContent = slider.value;
+          // Update 3D visualization if it exists and the slider relates to it
+          if (
+            scene &&
+            [
+              "ldx",
+              "ldy",
+              "ldz",
+              "Vrx",
+              "Vry",
+              "Vrz",
+              "Lx",
+              "Ly",
+              "Lz",
+            ].includes(slider.id)
+          ) {
+            update3DVisualization();
+          }
+        });
+      });
+
+      // Function to calculate water accumulation - fixing the time calculation
+      // Update the function signature to include Vs as a parameter
+      function calculateWaterAccumulation(
+        Lx,
+        Ly,
+        Lz,
+        Vrx,
+        Vry,
+        Vrz,
+        Vsx,
+        Vsy,
+        Vsz,
+        ldx,
+        ldy,
+        ldz,
+        Vs // Add Vs as a parameter
+      ) {
+        // Calculate water accumulation rates
+        let waterAccumRateX, waterAccumRateY, waterAccumRateZ;
+
+        if (Array.isArray(Vsx)) {
+          waterAccumRateX = Vsx.map((vs) => Math.abs(Ly * Lz * (Vrx - vs)));
+          waterAccumRateY = Vsy.map((vs) => Math.abs(Lx * Lz * (Vry - vs)));
+          waterAccumRateZ = Vsz.map((vs) => Math.abs(Lx * Ly * (Vrz - vs)));
+
+          // Debug the accumulation rates
+          console.log("Water accum rate X:", waterAccumRateX);
+          console.log("Water accum rate Y:", waterAccumRateY);
+          console.log("Water accum rate Z:", waterAccumRateZ);
+
+          // Calculate travel time - fixed calculation for time
+          // The time should be distance divided by speed, not distance divided by velocity component
+          // Use the Vs parameter that's now passed in
+          const travelTime = Vs.map((velocity) => {
+            if (velocity > 0) {
+              // Calculate time based on total distance and speed
+              const d = Math.sqrt(ldx * ldx + ldy * ldy + ldz * ldz);
+              return d / velocity; // Travel time = distance / speed
+            } else {
+              return Infinity;
+            }
+          });
+
+          console.log("Travel time:", travelTime);
+
+          // Calculate accumulation for each component
+          const waterAccumX = waterAccumRateX.map(
+            (rate, i) => rate * travelTime[i]
+          );
+          const waterAccumY = waterAccumRateY.map(
+            (rate, i) => rate * travelTime[i]
+          );
+          const waterAccumZ = waterAccumRateZ.map(
+            (rate, i) => rate * travelTime[i]
+          );
+
+          console.log("Water accum X:", waterAccumX);
+          console.log("Water accum Y:", waterAccumY);
+          console.log("Water accum Z:", waterAccumZ);
+
+          // Sum up all accumulations
+          return waterAccumX.map((x, i) => x + waterAccumY[i] + waterAccumZ[i]);
+        } else {
+          // Handle scalar inputs
+          waterAccumRateX = Math.abs(Ly * Lz * (Vrx - Vsx));
+          waterAccumRateY = Math.abs(Lx * Lz * (Vry - Vsy));
+          waterAccumRateZ = Math.abs(Lx * Ly * (Vrz - Vsz));
+
+          // Calculate travel time
+          const d = Math.sqrt(ldx * ldx + ldy * ldy + ldz * ldz);
+          const travelTime = d / Math.sqrt(Vsx * Vsx + Vsy * Vsy + Vsz * Vsz);
+
+          // Calculate total accumulation
+          const waterAccumX = waterAccumRateX * travelTime;
+          const waterAccumY = waterAccumRateY * travelTime;
+          const waterAccumZ = waterAccumRateZ * travelTime;
+
+          return waterAccumX + waterAccumY + waterAccumZ;
+        }
+      }
+    </script>
+  </body>
+</html>
